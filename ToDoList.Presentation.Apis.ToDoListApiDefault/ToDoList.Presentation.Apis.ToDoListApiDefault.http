@@ -1,0 +1,6 @@
+@ToDoList.Presentation.Apis.ToDoListApiDefault_HostAddress = http://localhost:5100
+
+GET {{ToDoList.Presentation.Apis.ToDoListApiDefault_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
