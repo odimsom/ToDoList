@@ -10,6 +10,6 @@
         /// <summary>
         /// Gets or sets the unique identifier for the entity.
         /// </summary>
-        public required TType Id { get; set; }
+        public TType? Id { get; set; }
     }
 }

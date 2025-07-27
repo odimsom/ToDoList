@@ -1,5 +1,7 @@
 using Microsoft.OpenApi.Models;
+using ToDoList.Core.Application;
 using ToDoList.Infrastructure.Persistence;
+using ToDoList.Presentation.Apis.ToDoListApiDefault.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +11,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddPecistenceLayeredRegistration(builder.Configuration);
+builder.Services.AddApplicationLayeredRegistration();
+builder.Services.AddApiVersioningExtensions();
 
 // CORS - Permitir todas las solicitudes
 builder.Services.AddCors(options =>
@@ -27,6 +31,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+app.UseErrorHandlerMiddleware();
 
 // Enable CORS
 app.UseCors("AllowAll");    

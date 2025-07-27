@@ -21,7 +21,7 @@
         /// <summary>
         /// Gets or sets an array of error messages if the operation failed.
         /// </summary>
-        public string[]? Errors { get; set; }
+        public List<string>? Errors { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OperationResult{TData}"/> class.
@@ -30,12 +30,16 @@
         /// <param name="isSuccess">Indicates whether the operation was successful.</param>
         /// <param name="message">A message describing the result.</param>
         /// <param name="errors">An array of error messages, if any.</param>
-        private OperationResult(TData? data, bool isSuccess, string? message, string[]? errors)
+        private OperationResult(TData? data, bool isSuccess, string? message, List<string>? errors)
         {
             Data = data;
             IsSuccess = isSuccess;
             Message = message;
             Errors = errors;
+        }
+
+        public OperationResult()
+        {
         }
 
         /// <summary>
@@ -54,7 +58,7 @@
         /// <param name="message">An optional failure message. Defaults to "Operation Failure".</param>
         /// <param name="data">Optional data returned by the operation. Defaults to the default value of <typeparamref name="TData"/>.</param>
         /// <returns>An <see cref="OperationResult{TData}"/> representing a failed operation.</returns>
-        public static OperationResult<TData> Failure(string[] errors, string? message = "Operation Failure", TData data = default!) => 
+        public static OperationResult<TData> Failure(List<string> errors, string? message = "Operation Failure", TData data = default!) => 
             new OperationResult<TData>(data ?? data, false, message, errors);
     }
 }
