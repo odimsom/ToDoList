@@ -12,9 +12,20 @@ using ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.Common;
 
 namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
 {
+    /// <summary>
+    /// API controller for managing TaskItems.
+    /// Supports CRUD operations and queries for tasks.
+    /// </summary>
     [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiController]
     public class TaskController : BaseApiController
     {
+        /// <summary>
+        /// Creates a new task.
+        /// </summary>
+        /// <param name="command">The task creation command.</param>
+        /// <returns>Returns the created task or a validation error.</returns>
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] CreateTaskCommand command)
         {
@@ -43,6 +54,11 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             return Ok(await Mediator.Send(command));
         }
 
+        /// <summary>
+        /// Gets a task by its unique identifier.
+        /// </summary>
+        /// <param name="id">The task's unique identifier.</param>
+        /// <returns>Returns the task if found, otherwise NotFound.</returns>
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> Get(Guid id)
         {
@@ -55,6 +71,12 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             return NotFound(result);
         }
 
+        /// <summary>
+        /// Updates an existing task.
+        /// </summary>
+        /// <param name="id">The task's unique identifier.</param>
+        /// <param name="command">The update command containing new task data.</param>
+        /// <returns>Returns the updated task or a validation error.</returns>
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Put(Guid id, [FromBody] UpdateTaskCommand command)
         {
@@ -65,6 +87,11 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             return Ok(await Mediator.Send(command));
         }
 
+        /// <summary>
+        /// Deletes a task by its unique identifier.
+        /// </summary>
+        /// <param name="id">The task's unique identifier.</param>
+        /// <returns>Returns the result of the delete operation.</returns>
         [HttpDelete]
         public async Task<IActionResult> Delete([Required] Guid id)
         {
@@ -72,6 +99,12 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             return Ok(await Mediator.Send(command));
         }
 
+        /// <summary>
+        /// Gets all tasks matching the specified query parameters.
+        /// </summary>
+        /// <param name="query">Query parameters for filtering tasks.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Returns a list of tasks or NotFound if none match.</returns>
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] TaskQuery query, CancellationToken cancellationToken)
         {
@@ -83,5 +116,5 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             }
             return NotFound(result);
         }
-    } 
+    }
 }
