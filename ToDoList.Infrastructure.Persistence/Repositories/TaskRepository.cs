@@ -28,7 +28,7 @@ namespace ToDoList.Infrastructure.Persistence.Repositories
             if (query.TaskType.HasValue)
                 tasks = tasks.Where(t => t.TaskType == query.TaskType);
 
-           var queryTasks = await tasks.ToListAsync(cancellationToken);
+            var queryTasks = await tasks.ToListAsync(cancellationToken);
 
             return OperationResult<IEnumerable<TaskItem>>.Success(queryTasks);
         }

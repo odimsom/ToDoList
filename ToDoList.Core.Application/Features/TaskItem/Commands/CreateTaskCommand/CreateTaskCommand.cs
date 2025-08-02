@@ -57,7 +57,8 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.CreateTaskCommand
 
                 var result = await tcs.Task;
                 return ResponseService<CreateTaskCommand>.ResponseSuccess(request, "Task created successfully", (int)HttpStatusCode.Created);
-            }catch(Exception ex)
+            }
+            catch(Exception ex)
             {
                 return ResponseService<CreateTaskCommand>.ResponseFailure(
                     (int)HttpStatusCode.InternalServerError,
