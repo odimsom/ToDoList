@@ -1,12 +1,15 @@
 ﻿using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using ToDoList.Core.Application.DTOs.TaskItem;
 using ToDoList.Core.Application.Features.TaskItem.Commands.CreateTaskCommand;
 using ToDoList.Core.Application.Features.TaskItem.Commands.DeleteTaskCommand;
 using ToDoList.Core.Application.Features.TaskItem.Commands.UpdateTaskCommand;
 using ToDoList.Core.Application.Features.TaskItem.Queries.GetAllTask;
 using ToDoList.Core.Application.Features.TaskItem.Queries.GetTaskById;
+using ToDoList.Core.Application.Wrapper;
 using ToDoList.Core.Domain.Delegates;
+using ToDoList.Core.Domain.Entities;
 using ToDoList.Core.Domain.Shared;
 using ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.Common;
 
@@ -50,8 +53,9 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             {
                 return BadRequest("Task validation failed.");
             }
+            var result = await Mediator.Send(command);
 
-            return Ok(await Mediator.Send(command));
+            return Ok(new { result.StatusCode, result.OperationResult });
         }
 
         /// <summary>
@@ -66,9 +70,9 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             var result = await Mediator.Send(query);
             if (result.IsSuccess)
             {
-                return Ok(result);
+                return Ok(new { result.StatusCode, result.OperationResult });
             }
-            return NotFound(result);
+            return NotFound(new { result.StatusCode, result.OperationResult });
         }
 
         /// <summary>
@@ -84,7 +88,8 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             {
                 return BadRequest("Task ID mismatch.");
             }
-            return Ok(await Mediator.Send(command));
+            var result = await Mediator.Send(command);
+            return Ok(new { result.StatusCode, result.OperationResult });
         }
 
         /// <summary>
@@ -96,7 +101,8 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
         public async Task<IActionResult> Delete([Required] Guid id)
         {
             var command = new DeleteTaskCommand { Id = id };
-            return Ok(await Mediator.Send(command));
+            var result = await Mediator.Send(command);
+            return Ok(new { result.StatusCode, result.OperationResult });
         }
 
         /// <summary>
@@ -110,11 +116,11 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
         {
             var getAllTask = new GetAllTask { query = query };
             var result = await Mediator.Send(getAllTask, cancellationToken);
-            if (result.IsSuccess)
+            if (result.OperationResult.IsSuccess)
             {
-                return Ok(result);
+                return Ok(new { result.StatusCode, result.OperationResult });
             }
-            return NotFound(result);
+            return NotFound(new { result.StatusCode, result.OperationResult });
         }
     }
 }
