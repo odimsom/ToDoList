@@ -15,8 +15,13 @@ namespace ToDoList.Core.Application
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
-            services.AddTransient<IQueueTaskItemService, QueueTaskItemService>();
+            
+            services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviour<,>));
+            
+            services.AddScoped<ICachingService, CachingService>();
+            services.AddScoped<IIdempotencyService, IdempotencyService>();
+            
+            services.AddScoped<IQueueTaskItemService, QueueTaskItemService>();
         }
     }
 }
