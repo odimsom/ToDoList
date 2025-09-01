@@ -9,14 +9,90 @@ namespace ToDoList.Infrastructure.Persistence.Context
     {
         public ToDoListContext(DbContextOptions<ToDoListContext> options) : base(options)
         {
-            
+
         }
+
         public DbSet<TaskItem> TaskItems { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            // Apply configurations
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(ToDoListContext).Assembly);
+
+            // Configure User entity
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Username).IsUnique();
+                entity.HasIndex(e => e.Email).IsUnique();
+
+                entity.Property(e => e.Username)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.PasswordHash)
+                    .IsRequired();
+
+                entity.Property(e => e.FirstName)
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.LastName)
+                    .HasMaxLength(50);
+
+                // Configure relationship with TaskItems
+                entity.HasMany(e => e.Tasks)
+                    .WithOne(e => e.User)
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Configure RefreshToken entity
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Token).IsUnique();
+
+                entity.Property(e => e.Token)
+                    .IsRequired();
+
+                entity.Property(e => e.ExpirationDate)
+                    .IsRequired();
+
+                // Configure relationship with User
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configure TaskItem entity
+            modelBuilder.Entity<TaskItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Description)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.DueDate)
+                    .IsRequired();
+
+                // Configure relationship with User
+                entity.HasOne(e => e.User)
+                    .WithMany(e => e.Tasks)
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Apply global query filter for soft delete
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 if (typeof(AuditableEntity).IsAssignableFrom(entityType.ClrType))

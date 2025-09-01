@@ -9,7 +9,8 @@ namespace ToDoList.Core.Application.Features.TaskItem.Queries.GetAllTask
 {
     public class GetAllTask : IRequest<ResponseService<IEnumerable<TaskItemDto>>>
     {
-        public TaskQuery query { get; set; }
+        public TaskQuery query { get; set; } = new();
+        public Guid? UserId { get; set; } // Add UserId for authentication
     }
 
     public class GetAllTaskHandler : IRequestHandler<GetAllTask, ResponseService<IEnumerable<TaskItemDto>>>
@@ -25,8 +26,14 @@ namespace ToDoList.Core.Application.Features.TaskItem.Queries.GetAllTask
 
         public async Task<ResponseService<IEnumerable<TaskItemDto>>> Handle(GetAllTask request, CancellationToken cancellationToken)
         {
+            // Set the UserId in the query for filtering
+            if (request.UserId.HasValue)
+            {
+                request.query.UserId = request.UserId;
+            }
+
             var cacheKey = _cachingService.GenerateQueryKey(request.query);
-            
+
             var cachedResult = await _cachingService.GetAsync<ResponseService<IEnumerable<TaskItemDto>>>(cacheKey, cancellationToken);
             if (cachedResult != null)
             {
@@ -47,10 +54,10 @@ namespace ToDoList.Core.Application.Features.TaskItem.Queries.GetAllTask
                 });
 
                 var response = ResponseService<IEnumerable<TaskItemDto>>.ResponseSuccess(taskItemsDto, "Tasks retrieved successfully", 200);
-                
+
                 // Cache the successful response for 15 minutes
                 await _cachingService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(15), cancellationToken);
-                
+
                 return response;
             }
 

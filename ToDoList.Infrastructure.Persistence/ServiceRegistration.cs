@@ -2,9 +2,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using ToDoList.Core.Domain.RepositoriesInterfaces;
 using ToDoList.Core.Domain.RepositoriesInterfaces.Common;
 using ToDoList.Core.Domain.Shared;
 using ToDoList.Infrastructure.Persistence.Context;
+using ToDoList.Infrastructure.Persistence.Repositories;
 
 namespace ToDoList.Infrastructure.Persistence
 {
@@ -21,6 +23,10 @@ namespace ToDoList.Infrastructure.Persistence
             }, ServiceLifetime.Scoped, ServiceLifetime.Scoped);
 
             services.AddStereotype(typeof(IGenericRepository<,>), Assembly.GetExecutingAssembly());
+
+            // Register specific repositories
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         }
     }
 }

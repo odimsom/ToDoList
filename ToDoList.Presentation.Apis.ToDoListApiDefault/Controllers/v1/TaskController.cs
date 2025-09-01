@@ -1,6 +1,8 @@
 ﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using ToDoList.Core.Application.DTOs.TaskItem;
 using ToDoList.Core.Application.Features.TaskItem.Commands.CreateTaskCommand;
 using ToDoList.Core.Application.Features.TaskItem.Commands.DeleteTaskCommand;
@@ -19,10 +21,12 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
     /// <summary>
     /// API controller for managing TaskItems.
     /// Supports CRUD operations and queries for tasks with idempotency and caching.
+    /// Requires JWT authentication.
     /// </summary>
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/[controller]")]
     [ApiController]
+    [Authorize] // Require authentication for all endpoints
     public class TaskController : BaseApiController
     {
         private readonly IIdempotencyService _idempotencyService;
@@ -33,7 +37,7 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
         }
 
         /// <summary>
-        /// Creates a new task.
+        /// Creates a new task for the authenticated user.
         /// </summary>
         /// <param name="command">The task creation command.</param>
         /// <param name="idempotencyKey">Optional idempotency key for duplicate request protection.</param>
@@ -43,6 +47,16 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             [FromBody] CreateTaskCommand command,
             [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
         {
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return BadRequest(new { Message = "Invalid user token" });
+            }
+
+            // Set the user ID for the task
+            command.UserId = userId;
+
             idempotencyKey ??= _idempotencyService.GenerateIdempotencyKey("create_task", command);
 
             var cachedResponse = await _idempotencyService.GetIdempotentResponseAsync<CreateTaskCommand>(idempotencyKey);
@@ -64,6 +78,7 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             {
                 Description = command.Description,
                 DueDate = command.DueDate,
+                UserId = userId
             }, message =>
             {
                 Console.WriteLine($"Validation faillure: {message}");
@@ -84,15 +99,23 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
 
         /// <summary>
         /// Gets a task by its unique identifier (cached).
+        /// Only returns tasks belonging to the authenticated user.
         /// </summary>
         /// <param name="id">The task's unique identifier.</param>
-        /// <returns>Returns the task if found, otherwise NotFound.</returns>
+        /// <returns>Returns the task if found and owned by user, otherwise NotFound.</returns>
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> Get(Guid id)
         {
-            var query = new GetTaskById { Id = id };
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return BadRequest(new { Message = "Invalid user token" });
+            }
+
+            var query = new GetTaskById { Id = id, UserId = userId };
             var result = await Mediator.Send(query);
-            
+
             if (result.OperationResult.IsSuccess)
             {
                 Response.Headers.Append("Cache-Control", "public, max-age=1800");
@@ -103,6 +126,7 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
 
         /// <summary>
         /// Updates an existing task (idempotent with change detection).
+        /// Only allows updating tasks belonging to the authenticated user.
         /// </summary>
         /// <param name="id">The task's unique identifier.</param>
         /// <param name="command">The update command containing new task data.</param>
@@ -110,7 +134,7 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
         /// <returns>Returns the updated task or a validation error.</returns>
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Put(
-            Guid id, 
+            Guid id,
             [FromBody] UpdateTaskCommand command,
             [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
         {
@@ -118,6 +142,16 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             {
                 return BadRequest("Task ID mismatch.");
             }
+
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return BadRequest(new { Message = "Invalid user token" });
+            }
+
+            // Set the user ID for authorization check
+            command.UserId = userId;
 
             idempotencyKey ??= _idempotencyService.GenerateIdempotencyKey("update_task", command.Id);
 
@@ -135,6 +169,7 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
 
         /// <summary>
         /// Deletes a task by its unique identifier (idempotent).
+        /// Only allows deleting tasks belonging to the authenticated user.
         /// </summary>
         /// <param name="id">The task's unique identifier.</param>
         /// <param name="idempotencyKey">Optional idempotency key for duplicate request protection.</param>
@@ -144,6 +179,13 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
             [Required] Guid id,
             [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey = null)
         {
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return BadRequest(new { Message = "Invalid user token" });
+            }
+
             idempotencyKey ??= _idempotencyService.GenerateIdempotencyKey("delete_task", id);
 
             var cachedResponse = await _idempotencyService.GetIdempotentResponseAsync<DeleteTaskCommand>(idempotencyKey);
@@ -153,7 +195,7 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
                 return Ok(new { cachedResponse.StatusCode, cachedResponse.OperationResult });
             }
 
-            var command = new DeleteTaskCommand { Id = id };
+            var command = new DeleteTaskCommand { Id = id, UserId = userId };
             var result = await Mediator.Send(command);
 
             await _idempotencyService.StoreIdempotentResponseAsync(idempotencyKey, result);
@@ -164,6 +206,7 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
 
         /// <summary>
         /// Gets all tasks matching the specified query parameters (cached).
+        /// Only returns tasks belonging to the authenticated user.
         /// </summary>
         /// <param name="query">Query parameters for filtering tasks.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
@@ -171,9 +214,16 @@ namespace ToDoList.Presentation.Apis.ToDoListApiDefault.Controllers.v1
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] TaskQuery query, CancellationToken cancellationToken)
         {
-            var getAllTask = new GetAllTask { query = query };
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out Guid userId))
+            {
+                return BadRequest(new { Message = "Invalid user token" });
+            }
+
+            var getAllTask = new GetAllTask { query = query, UserId = userId };
             var result = await Mediator.Send(getAllTask, cancellationToken);
-            
+
             Response.Headers.Append("Cache-Control", "public, max-age=900");
 
             if (result.OperationResult.IsSuccess)

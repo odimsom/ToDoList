@@ -41,14 +41,14 @@ namespace ToDoList.Core.Application.Services
             try
             {
                 var options = new MemoryCacheEntryOptions();
-
+                
                 if (expiration.HasValue)
                 {
                     options.AbsoluteExpirationRelativeToNow = expiration.Value;
                 }
                 else
                 {
-                    options.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30); // Default 30 minutes
+                    options.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
                 }
 
                 options.RegisterPostEvictionCallback((k, v, reason, state) =>

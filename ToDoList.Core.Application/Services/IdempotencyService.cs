@@ -23,12 +23,12 @@ namespace ToDoList.Core.Application.Services
             {
                 var cacheKey = $"idempotency_{idempotencyKey}";
                 var cachedResponse = await _cachingService.GetAsync<ResponseService<T>>(cacheKey, cancellationToken);
-
+                
                 if (cachedResponse != null)
                 {
                     _logger.LogDebug("Idempotent response found for key: {Key}", idempotencyKey);
                 }
-
+                
                 return cachedResponse;
             }
             catch (Exception ex)
@@ -44,7 +44,7 @@ namespace ToDoList.Core.Application.Services
             {
                 var cacheKey = $"idempotency_{idempotencyKey}";
                 await _cachingService.SetAsync(cacheKey, response, _idempotencyExpiration, cancellationToken);
-
+                
                 _logger.LogDebug("Stored idempotent response for key: {Key}", idempotencyKey);
             }
             catch (Exception ex)

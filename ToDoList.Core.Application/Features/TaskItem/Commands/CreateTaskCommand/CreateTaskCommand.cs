@@ -11,11 +11,12 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.CreateTaskCommand
 {
     public class CreateTaskCommand : IRequest<ResponseService<CreateTaskCommand>>
     {
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
         public StatusTask StatusTask { get; set; }
         public DateTime DueDate { get; set; }
-        public string AditionalData { get; set; }
+        public string AditionalData { get; set; } = string.Empty;
         public TaskType TaskType { get; set; }
+        public Guid? UserId { get; set; } // Add UserId for authentication
     }
 
     public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, ResponseService<CreateTaskCommand>>
@@ -44,7 +45,8 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.CreateTaskCommand
                     Description = request.Description,
                     DueDate = request.DueDate,
                     TaskType = request.TaskType,
-                    AdditionalData = request.AditionalData
+                    AdditionalData = request.AditionalData,
+                    UserId = request.UserId // Set the user ID
                 };
                 var tcs = new TaskCompletionSource<Guid>();
 
@@ -58,7 +60,7 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.CreateTaskCommand
                 var result = await tcs.Task;
                 return ResponseService<CreateTaskCommand>.ResponseSuccess(request, "Task created successfully", (int)HttpStatusCode.Created);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return ResponseService<CreateTaskCommand>.ResponseFailure(
                     (int)HttpStatusCode.InternalServerError,

@@ -7,6 +7,7 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.DeleteTaskCommand
     public class DeleteTaskCommand : IRequest<ResponseService<DeleteTaskCommand>>
     {
         public required Guid Id { get; set; }
+        public Guid? UserId { get; set; } // Add UserId for authentication
     }
 
     public class DeleteTaskCommandHandler : IRequestHandler<DeleteTaskCommand, ResponseService<DeleteTaskCommand>>
@@ -21,11 +22,18 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.DeleteTaskCommand
             try
             {
                 var entry = await _repository.GetByIdAsync(request.Id, cancellationToken);
-                if (entry.IsSuccess)
+                if (!entry.IsSuccess || entry.Data == null)
                 {
                     return ResponseService<DeleteTaskCommand>.ResponseFailure(404, ["Task not found"], null, null);
                 }
-                var result = await _repository.DeleteAsync(entry.Data!, cancellationToken);
+
+                // Check if the task belongs to the user (authorization)
+                if (request.UserId.HasValue && entry.Data.UserId != request.UserId)
+                {
+                    return ResponseService<DeleteTaskCommand>.ResponseFailure(403, ["Unauthorized to delete this task"], null, null);
+                }
+
+                var result = await _repository.DeleteAsync(entry.Data, cancellationToken);
 
                 if (result.IsSuccess)
                 {

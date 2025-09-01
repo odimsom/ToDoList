@@ -10,5 +10,9 @@ namespace ToDoList.Core.Domain.Entities
         public StatusTask StatusTask { get; set; } = StatusTask.PENDING;
         public string? AdditionalData { get; set; }
         public TaskType TaskType { get; set; } = TaskType.LimpiezaGeneral;
+
+        // User relationship
+        public Guid? UserId { get; set; }
+        public virtual User? User { get; set; }
     }
 }

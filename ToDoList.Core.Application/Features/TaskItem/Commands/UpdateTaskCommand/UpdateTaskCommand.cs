@@ -15,8 +15,9 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.UpdateTaskCommand
         public string? AditionalData { get; set; }
         public StatusTask? StatusTask { get; set; }
         public TaskType? TaskType { get; set; }
+        public Guid? UserId { get; set; } // Add UserId for authentication
     }
-    
+
     public class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand, ResponseService<TaskItemDto>>
     {
         private readonly ITaskRepostiory _repository;
@@ -24,7 +25,7 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.UpdateTaskCommand
         private readonly ICachingService _cachingService;
 
         public UpdateTaskCommandHandler(
-            ITaskRepostiory repository, 
+            ITaskRepostiory repository,
             IIdempotencyService idempotencyService,
             ICachingService cachingService)
         {
@@ -53,7 +54,14 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.UpdateTaskCommand
                 }
 
                 var originalTask = entry.Data;
-                
+
+                // Check if the task belongs to the user (authorization)
+                if (request.UserId.HasValue && originalTask.UserId != request.UserId)
+                {
+                    var unauthorizedResponse = ResponseService<TaskItemDto>.ResponseFailure(403, ["Unauthorized to modify this task"], null, null);
+                    return unauthorizedResponse;
+                }
+
                 // Create a copy of current task data to compare
                 var currentTaskDto = new TaskItemDto
                 {
@@ -85,9 +93,9 @@ namespace ToDoList.Core.Application.Features.TaskItem.Commands.UpdateTaskCommand
                 if (!_idempotencyService.HasDataChanged(updatedTaskDto, currentTaskDto))
                 {
                     var noChangeResponse = ResponseService<TaskItemDto>.ResponseSuccess(currentTaskDto, "No changes detected, task remains unchanged", 200);
-                    
+
                     await _idempotencyService.StoreIdempotentResponseAsync(idempotencyKey, noChangeResponse, cancellationToken);
-                    
+
                     return noChangeResponse;
                 }
 
